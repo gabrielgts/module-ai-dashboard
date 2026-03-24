@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <aidashboard>
+            <general>
+                <!-- Set to 0 to hide the AI Dashboard and return empty responses from all Ajax endpoints -->
+                <enabled>1</enabled>
+            </general>
+            <data>
+                <!-- Products with qty below this value appear in low-stock alerts -->
+                <low_stock_threshold>10</low_stock_threshold>
+                <!-- Rows in "Top Selling Products" table -->
+                <top_products_limit>10</top_products_limit>
+                <!-- Rows in "Top Customers by LTV" table -->
+                <top_customers_limit>5</top_customers_limit>
+                <!-- Rows in "Top Coupons" table inside Coupon Usage card -->
+                <top_coupons_limit>5</top_coupons_limit>
+                <!-- Rows in "Recent Orders" table -->
+                <recent_orders_limit>10</recent_orders_limit>
+                <!-- Days of history for revenue and acquisition trend charts -->
+                <trend_days>30</trend_days>
+            </data>
+            <cache>
+                <!-- TTL (seconds) for the full dashboard snapshot — rebuilt by daily cron -->
+                <snapshot_ttl>3600</snapshot_ttl>
+                <!-- TTL (seconds) for today-only incremental data — rebuilt by hourly cron -->
+                <today_ttl>1800</today_ttl>
+                <!-- TTL (seconds) for cached AI insights responses -->
+                <insights_ttl>7200</insights_ttl>
+            </cache>
+            <cron>
+                <!-- Full snapshot rebuild schedule (cron expression) -->
+                <full_rebuild_schedule>5 0 * * *</full_rebuild_schedule>
+                <!-- Today-only incremental refresh schedule (cron expression) -->
+                <incremental_schedule>0 * * * *</incremental_schedule>
+            </cron>
+        </aidashboard>
+    </default>
+</config>

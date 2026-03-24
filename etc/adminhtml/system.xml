@@ -1,0 +1,117 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="aidashboard" translate="label" sortOrder="20"
+                 showInDefault="1" showInWebsite="1" showInStore="1">
+            <tab>service</tab>
+            <label>AI Dashboard</label>
+            <resource>Gtstudio_AiDashboard::config</resource>
+
+            <group id="general" translate="label" sortOrder="10"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>General</label>
+
+                <field id="enabled" translate="label comment" type="select" sortOrder="10"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable AI Dashboard</label>
+                    <comment>When disabled, the dashboard Ajax endpoints return an empty response and the module is effectively off. The native Magento dashboard is shown instead.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+            </group>
+
+            <group id="data" translate="label" sortOrder="20"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Data Collection</label>
+
+                <field id="low_stock_threshold" translate="label comment" type="text" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Low Stock Threshold</label>
+                    <comment>Products with qty strictly below this value appear in Low Stock Alerts. Min: 1.</comment>
+                    <validate>required-entry validate-greater-than-zero validate-digits</validate>
+                </field>
+
+                <field id="top_products_limit" translate="label comment" type="text" sortOrder="20"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Top Products Limit</label>
+                    <comment>Number of rows in the Top Selling Products table. Range: 1–50.</comment>
+                    <validate>required-entry validate-greater-than-zero validate-digits</validate>
+                </field>
+
+                <field id="top_customers_limit" translate="label comment" type="text" sortOrder="30"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Top Customers Limit</label>
+                    <comment>Number of rows in the Top Customers by Lifetime Value table. Range: 1–50.</comment>
+                    <validate>required-entry validate-greater-than-zero validate-digits</validate>
+                </field>
+
+                <field id="top_coupons_limit" translate="label comment" type="text" sortOrder="40"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Top Coupons Limit</label>
+                    <comment>Number of rows in the Top Coupons section of the Coupon Usage card. Range: 1–50.</comment>
+                    <validate>required-entry validate-greater-than-zero validate-digits</validate>
+                </field>
+
+                <field id="recent_orders_limit" translate="label comment" type="text" sortOrder="50"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Recent Orders Limit</label>
+                    <comment>Number of rows in the Recent Orders table. Range: 1–100.</comment>
+                    <validate>required-entry validate-greater-than-zero validate-digits</validate>
+                </field>
+
+                <field id="trend_days" translate="label comment" type="text" sortOrder="60"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Trend Window (days)</label>
+                    <comment>Lookback period for Revenue Trend and Customer Acquisition charts. Larger values increase cron query time. Range: 7–365.</comment>
+                    <validate>required-entry validate-greater-than-zero validate-digits</validate>
+                </field>
+            </group>
+
+            <group id="cache" translate="label" sortOrder="30"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Cache TTLs</label>
+                <comment>All values are in seconds. Minimum enforced at runtime is 60 s regardless of what is saved here. Flush the Dashboard cache after changing these values.</comment>
+
+                <field id="snapshot_ttl" translate="label comment" type="text" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Full Snapshot TTL</label>
+                    <comment>How long the full dashboard snapshot is served from cache before expiring. Default: 3600 (1 h). This cache is also rebuilt daily by cron.</comment>
+                    <validate>required-entry validate-greater-than-zero validate-digits</validate>
+                </field>
+
+                <field id="today_ttl" translate="label comment" type="text" sortOrder="20"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Today Data TTL</label>
+                    <comment>TTL for the incremental today-only cache rebuilt every hour. Default: 1800 (30 min).</comment>
+                    <validate>required-entry validate-greater-than-zero validate-digits</validate>
+                </field>
+
+                <field id="insights_ttl" translate="label comment" type="text" sortOrder="30"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>AI Insights TTL</label>
+                    <comment>How long a generated AI insights response is cached per question hash. Default: 7200 (2 h). Set lower for more real-time insights (increases AI API calls).</comment>
+                    <validate>required-entry validate-greater-than-zero validate-digits</validate>
+                </field>
+            </group>
+
+            <group id="cron" translate="label" sortOrder="40"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Cron Schedules</label>
+                <comment>Standard cron expressions. Changes take effect on the next Magento cron run. Avoid overlapping the two jobs — the full rebuild is expensive.</comment>
+
+                <field id="full_rebuild_schedule" translate="label comment" type="text" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Full Rebuild Schedule</label>
+                    <comment>Rebuilds the entire dashboard snapshot from the database. Default: 5 0 * * * (daily at 00:05).</comment>
+                </field>
+
+                <field id="incremental_schedule" translate="label comment" type="text" sortOrder="20"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Incremental Refresh Schedule</label>
+                    <comment>Refreshes today-only metrics (orders, revenue, new customers). Default: 0 * * * * (every hour).</comment>
+                </field>
+            </group>
+
+        </section>
+    </system>
+</config>

@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!-- Data interfaces -->
+    <preference for="Gtstudio\AiDashboard\Api\Data\DashboardSnapshotInterface"
+                type="Gtstudio\AiDashboard\Model\Data\DashboardSnapshot"/>
+    <preference for="Gtstudio\AiDashboard\Api\Data\OrderMetricsInterface"
+                type="Gtstudio\AiDashboard\Model\Data\OrderMetrics"/>
+    <preference for="Gtstudio\AiDashboard\Api\Data\CustomerMetricsInterface"
+                type="Gtstudio\AiDashboard\Model\Data\CustomerMetrics"/>
+    <preference for="Gtstudio\AiDashboard\Api\Data\ProductMetricsInterface"
+                type="Gtstudio\AiDashboard\Model\Data\ProductMetrics"/>
+
+    <!-- Service interface -->
+    <preference for="Gtstudio\AiDashboard\Api\DashboardDataServiceInterface"
+                type="Gtstudio\AiDashboard\Model\Service\DashboardDataService"/>
+
+    <!--
+        DashboardDataService needs separate prototype instances for cloning.
+        Using virtualType here would still share via DI singleton pool, so we
+        rely on the fact that these plain data objects have no shared mutable state
+        beyond what is set via setters — cloning is safe.
+    -->
+    <type name="Gtstudio\AiDashboard\Model\Service\DashboardDataService">
+        <arguments>
+            <!-- Metric object prototypes used for cache hydration via clone -->
+            <argument name="snapshotProto"        xsi:type="object">Gtstudio\AiDashboard\Model\Data\DashboardSnapshot</argument>
+            <argument name="orderMetricsProto"    xsi:type="object">Gtstudio\AiDashboard\Model\Data\OrderMetrics</argument>
+            <argument name="customerMetricsProto" xsi:type="object">Gtstudio\AiDashboard\Model\Data\CustomerMetrics</argument>
+            <argument name="productMetricsProto"  xsi:type="object">Gtstudio\AiDashboard\Model\Data\ProductMetrics</argument>
+        </arguments>
+    </type>
+
+    <!--
+        All numeric tunables (TTLs, thresholds, limits, trend window) are now read
+        from system configuration via Gtstudio\AiDashboard\Model\Config.
+        No hardcoded numbers in di.xml — change values at:
+        Stores > Configuration > AI Studio > AI Dashboard
+    -->
+
+</config>

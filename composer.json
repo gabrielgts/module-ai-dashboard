@@ -1,0 +1,31 @@
+{
+    "name": "gtstudio/module-ai-dashboard",
+    "description": "AI-powered admin dashboard for Magento 2 — replaces the stock dashboard with charts, KPI cards, stock alerts, and an embedded store assistant agent.",
+    "type": "magento2-module",
+    "license": "BUSL-1.1",
+    "authors": [
+        {
+            "name": "Gabriel Silveira",
+            "role": "Lead Developer"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "gtstudio/module-ai-connector": "*",
+        "gtstudio/module-ai-agents": "*",
+        "gtstudio/module-ai-data-query": "*",
+        "magento/module-backend": "*",
+        "magento/module-sales": "*",
+        "magento/module-customer": "*",
+        "magento/module-catalog": "*",
+        "magento/module-catalog-inventory": "*"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Gtstudio\\AiDashboard\\": ""
+        }
+    }
+}

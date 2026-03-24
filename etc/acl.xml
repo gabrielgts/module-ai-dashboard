@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Gtstudio_AiDashboard::dashboard"
+                          title="AI Dashboard"
+                          sortOrder="10">
+                    <resource id="Gtstudio_AiDashboard::view"
+                              title="View Dashboard"
+                              sortOrder="10"/>
+                    <resource id="Gtstudio_AiDashboard::refresh"
+                              title="Refresh Dashboard Data"
+                              sortOrder="20"/>
+                    <resource id="Gtstudio_AiDashboard::chat"
+                              title="Use AI Assistant"
+                              sortOrder="30"/>
+                    <resource id="Gtstudio_AiDashboard::config"
+                              title="Manage AI Dashboard Configuration"
+                              sortOrder="40"/>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>

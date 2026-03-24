@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
+    <group id="default">
+        <!-- Full snapshot rebuild — schedule configurable at Stores > Config > AI Studio > AI Dashboard > Cron -->
+        <job name="gtstudio_aidashboard_builddashboarddata"
+             instance="Gtstudio\AiDashboard\Cron\BuildDashboardData"
+             method="execute">
+            <config_path>aidashboard/cron/full_rebuild_schedule</config_path>
+        </job>
+        <!-- Today-only incremental refresh — schedule configurable at Stores > Config > AI Studio > AI Dashboard > Cron -->
+        <job name="gtstudio_aidashboard_refreshtodaydata"
+             instance="Gtstudio\AiDashboard\Cron\RefreshTodayData"
+             method="execute">
+            <config_path>aidashboard/cron/incremental_schedule</config_path>
+        </job>
+    </group>
+</config>

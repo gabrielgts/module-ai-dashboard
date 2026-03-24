@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!--
+    Shared assets handle. Included by adminhtml_dashboard_index so the CSS is
+    injected without needing a separate route or controller.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="Gtstudio_AiDashboard::css/dashboard.css"/>
+    </head>
+</page>

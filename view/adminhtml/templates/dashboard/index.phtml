@@ -1,0 +1,396 @@
+<?php
+/**
+ * @var \Magento\Backend\Block\Dashboard $block
+ * @var \Magento\Framework\Escaper $escaper
+ *
+ * $block is the native Magento dashboard block — all child blocks (sales, grids, etc.)
+ * are available via $block->getChildBlock() / $block->getChildHtml().
+ *
+ * $aiBlock is our custom block, injected as child alias "ai_ui", used for AJAX URLs and ACL.
+ */
+
+/** @var \Gtstudio\AiDashboard\Block\Adminhtml\Dashboard $aiBlock */
+$aiBlock    = $block->getChildBlock('ai_ui');
+
+/** @var \Magento\Backend\Block\Dashboard\Sales|null $salesBlock */
+$salesBlock = $block->getChildBlock('sales');
+$totals     = $salesBlock ? $salesBlock->getTotals() : [];
+
+// Index totals by label key for direct access
+$lifetimeSales = null;
+$avgOrder      = null;
+foreach ($totals as $total) {
+    $lc = strtolower((string) ($total['label'] ?? ''));
+    if (str_contains($lc, 'lifetime')) {
+        $lifetimeSales = $total;
+    } elseif (str_contains($lc, 'average')) {
+        $avgOrder = $total;
+    }
+}
+?>
+<div id="ai-dashboard" class="aid-root">
+
+    <!-- ── Header ────────────────────────────────────────────────────────── -->
+    <div class="aid-header">
+        <div class="aid-header__title">
+            <h1 class="aid-heading"><?= $escaper->escapeHtml(__('AI Dashboard')) ?></h1>
+            <span class="aid-header__badge">LIVE</span>
+        </div>
+        <div class="aid-header__actions">
+            <?php $storeList = $aiBlock ? $aiBlock->getStoreList() : []; ?>
+            <?php if (!empty($storeList)): ?>
+            <div class="aid-store-switcher-wrap">
+                <label for="aid-store-switcher" class="aid-store-switcher__label">
+                    <?= $escaper->escapeHtml(__('Store View:')) ?>
+                </label>
+                <select id="aid-store-switcher" class="aid-store-switcher">
+                    <option value="0"><?= $escaper->escapeHtml(__('All Store Views')) ?></option>
+                    <?php foreach ($storeList as $store): ?>
+                    <option value="<?= $escaper->escapeHtmlAttr($store['value']) ?>">
+                        <?= $escaper->escapeHtml($store['label']) ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <?php endif; ?>
+            <span class="aid-last-updated">
+                <?= $escaper->escapeHtml(__('Last updated:')) ?>
+                <span id="aid-last-updated-time">—</span>
+            </span>
+            <?php if ($aiBlock && $aiBlock->canRefresh()): ?>
+            <button id="aid-refresh-btn" class="aid-btn aid-btn--secondary">
+                <span>↺</span> <?= $escaper->escapeHtml(__('Refresh')) ?>
+            </button>
+            <?php endif; ?>
+            <?php if ($aiBlock && $aiBlock->canUseAssistant()): ?>
+            <button id="aid-chat-open-btn" class="aid-btn aid-btn--primary">
+                <span>✦</span> <?= $escaper->escapeHtml(__('AI Assistant')) ?>
+            </button>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- ── Loading / Error ───────────────────────────────────────────────── -->
+    <div id="aid-loading" class="aid-loading">
+        <div class="aid-spinner"></div>
+        <p><?= $escaper->escapeHtml(__('Loading dashboard data…')) ?></p>
+    </div>
+    <div id="aid-error" class="aid-error" style="display:none">
+        <p id="aid-error-msg"></p>
+        <button class="aid-btn aid-btn--secondary" onclick="AiDashboard.load()">
+            <?= $escaper->escapeHtml(__('Retry')) ?>
+        </button>
+    </div>
+
+    <!-- ── Main content ───────────────────────────────────────────────────── -->
+    <div id="aid-content" style="display:none">
+
+        <!-- KPI Cards — row 1: Magento native data (server-side) + AJAX data -->
+        <div class="aid-kpi-row">
+
+            <?php if ($lifetimeSales): ?>
+            <div class="aid-kpi-card aid-kpi-card--accent">
+                <div class="aid-kpi__label"><?= $escaper->escapeHtml(__('Lifetime Sales')) ?></div>
+                <div class="aid-kpi__value">
+                    <?= /* @noEscape */ $lifetimeSales['value'] ?>
+                    <span style="font-size:1rem"><?= /* @noEscape */ $lifetimeSales['decimals'] ?></span>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if ($avgOrder): ?>
+            <div class="aid-kpi-card">
+                <div class="aid-kpi__label"><?= $escaper->escapeHtml(__('Average Order')) ?></div>
+                <div class="aid-kpi__value">
+                    <?= /* @noEscape */ $avgOrder['value'] ?>
+                    <span style="font-size:1rem"><?= /* @noEscape */ $avgOrder['decimals'] ?></span>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- AJAX-loaded KPI cards -->
+            <div class="aid-kpi-card">
+                <div class="aid-kpi__label"><?= $escaper->escapeHtml(__("Today's Revenue")) ?></div>
+                <div class="aid-kpi__value" id="kpi-today-revenue">—</div>
+                <div class="aid-kpi__sub" id="kpi-today-orders">—</div>
+            </div>
+            <div class="aid-kpi-card">
+                <div class="aid-kpi__label"><?= $escaper->escapeHtml(__('Month Revenue')) ?></div>
+                <div class="aid-kpi__value" id="kpi-month-revenue">—</div>
+                <div class="aid-kpi__sub aid-growth" id="kpi-growth">—</div>
+            </div>
+            <div class="aid-kpi-card">
+                <div class="aid-kpi__label"><?= $escaper->escapeHtml(__('New Customers Today')) ?></div>
+                <div class="aid-kpi__value" id="kpi-new-customers">—</div>
+                <div class="aid-kpi__sub" id="kpi-repeat-rate">—</div>
+                <div class="aid-kpi__slope" id="aid-acquisition-slope"></div>
+            </div>
+            <div class="aid-kpi-card">
+                <div class="aid-kpi__label"><?= $escaper->escapeHtml(__('Stock Alerts')) ?></div>
+                <div class="aid-kpi__value aid-kpi__value--danger" id="kpi-out-of-stock">—</div>
+                <div class="aid-kpi__sub" id="kpi-low-stock">—</div>
+            </div>
+        </div>
+
+        <!-- ── Sortable sections ──────────────────────────────────────────── -->
+        <div id="aid-sections">
+
+        <!-- Coupon Usage Card -->
+        <div class="aid-sortable-section" data-section-id="coupon-usage">
+        <div class="aid-coupon-card">
+            <div class="aid-card__header">
+                <span class="aid-drag-handle" title="<?= $escaper->escapeHtmlAttr(__('Drag to reorder')) ?>">&#8942;&#8942;</span>
+                <h3><?= $escaper->escapeHtml(__('Coupon Usage')) ?></h3>
+                <span class="aid-card__sub"><?= $escaper->escapeHtml(__('This month')) ?></span>
+            </div>
+            <div class="aid-coupon__body">
+                <div class="aid-coupon__stats">
+                    <div class="aid-coupon__stat">
+                        <span class="aid-kpi__label"><?= $escaper->escapeHtml(__('Used Today')) ?></span>
+                        <span class="aid-kpi__value" id="kpi-coupons-today">—</span>
+                    </div>
+                    <div class="aid-coupon__stat">
+                        <span class="aid-kpi__label"><?= $escaper->escapeHtml(__('Used This Month')) ?></span>
+                        <span class="aid-kpi__value" id="kpi-coupons-month">—</span>
+                    </div>
+                    <div class="aid-coupon__stat">
+                        <span class="aid-kpi__label"><?= $escaper->escapeHtml(__('Total Discount')) ?></span>
+                        <span class="aid-kpi__value aid-kpi__value--warn" id="kpi-coupons-discount">—</span>
+                    </div>
+                </div>
+                <table class="aid-table">
+                    <thead>
+                        <tr>
+                            <th><?= $escaper->escapeHtml(__('Coupon Code')) ?></th>
+                            <th><?= $escaper->escapeHtml(__('Uses')) ?></th>
+                            <th><?= $escaper->escapeHtml(__('Total Discount')) ?></th>
+                        </tr>
+                    </thead>
+                    <tbody id="aid-coupons-tbody">
+                        <tr><td colspan="3" class="aid-table__empty">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </div><!-- /.aid-sortable-section[coupon-usage] -->
+
+        <!-- Charts Row -->
+        <div class="aid-sortable-section" data-section-id="charts">
+        <div class="aid-section-drag-bar">
+            <span class="aid-drag-handle" title="<?= $escaper->escapeHtmlAttr(__('Drag to reorder')) ?>">&#8942;&#8942;</span>
+            <span><?= $escaper->escapeHtml(__('Revenue Charts')) ?></span>
+        </div>
+        <div class="aid-charts-row">
+            <div class="aid-chart-card aid-chart-card--wide">
+                <div class="aid-card__header">
+                    <h3><?= $escaper->escapeHtml(__('Revenue Trend — Last 30 Days')) ?></h3>
+                    <span id="aid-revenue-slope" class="aid-card__slope"></span>
+                </div>
+                <canvas id="aid-chart-revenue" height="90"></canvas>
+            </div>
+            <div class="aid-chart-card">
+                <div class="aid-card__header">
+                    <h3><?= $escaper->escapeHtml(__('Orders by Status')) ?></h3>
+                </div>
+                <canvas id="aid-chart-status" height="180"></canvas>
+            </div>
+        </div>
+        </div><!-- /.aid-sortable-section[charts] -->
+
+        <!-- Customer Segments -->
+        <div class="aid-sortable-section" data-section-id="customer-segments">
+        <div class="aid-section-drag-bar">
+            <span class="aid-drag-handle" title="<?= $escaper->escapeHtmlAttr(__('Drag to reorder')) ?>">&#8942;&#8942;</span>
+            <span><?= $escaper->escapeHtml(__('Customer Health — RFM Segments')) ?></span>
+        </div>
+        <div class="aid-segments-row">
+            <div class="aid-seg-card aid-seg--vip">
+                <div class="aid-seg__icon">★</div>
+                <div class="aid-seg__label"><?= $escaper->escapeHtml(__('VIP')) ?></div>
+                <div class="aid-seg__count" id="aid-seg-count-vip">—</div>
+                <div class="aid-seg__ltv"   id="aid-seg-ltv-vip">—</div>
+            </div>
+            <div class="aid-seg-card aid-seg--active">
+                <div class="aid-seg__icon">✓</div>
+                <div class="aid-seg__label"><?= $escaper->escapeHtml(__('Active')) ?></div>
+                <div class="aid-seg__count" id="aid-seg-count-active">—</div>
+                <div class="aid-seg__ltv"   id="aid-seg-ltv-active">—</div>
+            </div>
+            <div class="aid-seg-card aid-seg--atrisk">
+                <div class="aid-seg__icon">⚠</div>
+                <div class="aid-seg__label"><?= $escaper->escapeHtml(__('At-Risk')) ?></div>
+                <div class="aid-seg__count" id="aid-seg-count-at_risk">—</div>
+                <div class="aid-seg__ltv"   id="aid-seg-ltv-at_risk">—</div>
+            </div>
+        </div>
+        </div><!-- /.aid-sortable-section[customer-segments] -->
+
+        <!-- Tables Row: Top Products + Top Customers -->
+        <div class="aid-sortable-section" data-section-id="top-tables">
+        <div class="aid-section-drag-bar">
+            <span class="aid-drag-handle" title="<?= $escaper->escapeHtmlAttr(__('Drag to reorder')) ?>">&#8942;&#8942;</span>
+            <span><?= $escaper->escapeHtml(__('Top Products & Customers')) ?></span>
+        </div>
+        <div class="aid-tables-row">
+            <div class="aid-table-card">
+                <div class="aid-card__header">
+                    <h3><?= $escaper->escapeHtml(__('Top Selling Products')) ?></h3>
+                    <span class="aid-card__sub"><?= $escaper->escapeHtml(__('Last 30 days')) ?></span>
+                </div>
+                <table class="aid-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th><?= $escaper->escapeHtml(__('Product')) ?></th>
+                            <th><?= $escaper->escapeHtml(__('SKU')) ?></th>
+                            <th><?= $escaper->escapeHtml(__('Qty Sold')) ?></th>
+                            <th><?= $escaper->escapeHtml(__('Revenue')) ?></th>
+                        </tr>
+                    </thead>
+                    <tbody id="aid-products-tbody">
+                        <tr><td colspan="5" class="aid-table__empty">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="aid-table-card">
+                <div class="aid-card__header">
+                    <h3><?= $escaper->escapeHtml(__('Top Customers by Lifetime Value')) ?></h3>
+                </div>
+                <table class="aid-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th><?= $escaper->escapeHtml(__('Customer')) ?></th>
+                            <th><?= $escaper->escapeHtml(__('Orders')) ?></th>
+                            <th><?= $escaper->escapeHtml(__('Lifetime Value')) ?></th>
+                        </tr>
+                    </thead>
+                    <tbody id="aid-customers-tbody">
+                        <tr><td colspan="4" class="aid-table__empty">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </div><!-- /.aid-sortable-section[top-tables] -->
+
+        <!-- Search Terms + Stock Alerts Row -->
+        <div class="aid-sortable-section" data-section-id="search-stock">
+        <div class="aid-section-drag-bar">
+            <span class="aid-drag-handle" title="<?= $escaper->escapeHtmlAttr(__('Drag to reorder')) ?>">&#8942;&#8942;</span>
+            <span><?= $escaper->escapeHtml(__('Search Terms & Stock Alerts')) ?></span>
+        </div>
+        <div class="aid-tables-row">
+
+            <!-- Magento native search grids injected and re-styled -->
+            <div class="aid-table-card aid-search-grids">
+                <?= /* @noEscape */ $block->getChildHtml('grids') ?>
+            </div>
+
+            <div class="aid-alerts-card">
+                <div class="aid-card__header">
+                    <h3><?= $escaper->escapeHtml(__('Low Stock Alerts')) ?></h3>
+                </div>
+                <ul id="aid-stock-alerts" class="aid-alerts-list">
+                    <li class="aid-alerts__empty">Loading…</li>
+                </ul>
+            </div>
+        </div>
+        </div><!-- /.aid-sortable-section[search-stock] -->
+
+        <!-- AI Insights -->
+        <?php if ($aiBlock && $aiBlock->canUseAssistant()): ?>
+        <div class="aid-sortable-section" data-section-id="insights">
+        <div class="aid-insights-full">
+            <div class="aid-card__header">
+                <span class="aid-drag-handle" title="<?= $escaper->escapeHtmlAttr(__('Drag to reorder')) ?>">&#8942;&#8942;</span>
+                <h3><?= $escaper->escapeHtml(__('AI Insights')) ?></h3>
+                <button id="aid-get-insights-btn" class="aid-btn aid-btn--sm aid-btn--primary">
+                    <?= $escaper->escapeHtml(__('Generate Insights')) ?>
+                </button>
+            </div>
+            <div id="aid-insights-body" class="aid-insights__body">
+                <p class="aid-insights__placeholder">
+                    <?= $escaper->escapeHtml(
+                        __('Click "Generate Insights" for an AI-powered summary of your store performance.')
+                    ) ?>
+                </p>
+            </div>
+        </div>
+        </div><!-- /.aid-sortable-section[insights] -->
+        <?php endif; ?>
+
+        <!-- Recent Orders -->
+        <div class="aid-sortable-section" data-section-id="recent-orders">
+        <div class="aid-recent-card">
+            <div class="aid-card__header">
+                <span class="aid-drag-handle" title="<?= $escaper->escapeHtmlAttr(__('Drag to reorder')) ?>">&#8942;&#8942;</span>
+                <h3><?= $escaper->escapeHtml(__('Recent Orders')) ?></h3>
+            </div>
+            <table class="aid-table">
+                <thead>
+                    <tr>
+                        <th><?= $escaper->escapeHtml(__('Order #')) ?></th>
+                        <th><?= $escaper->escapeHtml(__('Customer')) ?></th>
+                        <th><?= $escaper->escapeHtml(__('Items')) ?></th>
+                        <th><?= $escaper->escapeHtml(__('Total')) ?></th>
+                        <th><?= $escaper->escapeHtml(__('Status')) ?></th>
+                        <th><?= $escaper->escapeHtml(__('Date')) ?></th>
+                    </tr>
+                </thead>
+                <tbody id="aid-recent-orders-tbody">
+                    <tr><td colspan="6" class="aid-table__empty">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        </div><!-- /.aid-sortable-section[recent-orders] -->
+
+        </div><!-- /#aid-sections -->
+    </div><!-- /#aid-content -->
+
+    <!-- ── AI Chat Drawer ─────────────────────────────────────────────────── -->
+    <?php if ($aiBlock && $aiBlock->canUseAssistant()): ?>
+    <div id="aid-chat-drawer" class="aid-chat-drawer aid-chat-drawer--closed">
+        <div class="aid-chat__header">
+            <h3><?= $escaper->escapeHtml(__('Store Assistant')) ?></h3>
+            <button id="aid-chat-close-btn" class="aid-chat__close">✕</button>
+        </div>
+        <div id="aid-chat-messages" class="aid-chat__messages"></div>
+        <div class="aid-chat__input-row">
+            <input id="aid-chat-input"
+                   type="text"
+                   class="aid-chat__input"
+                   placeholder="<?= $escaper->escapeHtmlAttr(__('Ask anything about your store…')) ?>"/>
+            <button id="aid-chat-send-btn" class="aid-btn aid-btn--primary">
+                <?= $escaper->escapeHtml(__('Send')) ?>
+            </button>
+        </div>
+        <div class="aid-chat__footer">
+            <span id="aid-chat-tokens" class="aid-chat__tokens"></span>
+        </div>
+    </div>
+    <?php endif; ?>
+
+</div><!-- /#ai-dashboard -->
+
+<script>
+    var AiDashboardConfig = {
+        dataUrl:          '<?= $escaper->escapeJs($aiBlock ? $aiBlock->getDataUrl() : '') ?>',
+        insightsUrl:      '<?= $escaper->escapeJs($aiBlock ? $aiBlock->getInsightsUrl() : '') ?>',
+        chatUrl:          '<?= $escaper->escapeJs($aiBlock ? $aiBlock->getChatUrl() : '') ?>',
+        refreshUrl:       '<?= $escaper->escapeJs($aiBlock ? $aiBlock->getRefreshUrl() : '') ?>',
+        preferencesUrl:   '<?= $escaper->escapeJs($aiBlock ? $aiBlock->getPreferencesUrl() : '') ?>',
+        sectionsOrder:    <?= /* @noEscape */ json_encode($aiBlock ? $aiBlock->getSectionsOrder() : []) ?>,
+        canAssistant:     <?= ($aiBlock && $aiBlock->canUseAssistant()) ? 'true' : 'false' ?>,
+        hasStoreSwitcher: <?= !empty($storeList) ? 'true' : 'false' ?>
+    };
+</script>
+
+<script type="text/x-magento-init">
+{
+    "*": {
+        "Gtstudio_AiDashboard/js/dashboard": {}
+    }
+}
+</script>
