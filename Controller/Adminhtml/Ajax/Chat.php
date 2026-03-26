@@ -17,6 +17,11 @@ class Chat extends Action implements HttpPostActionInterface
 
     private const AGENT_CODE = 'store_assistant';
 
+    /**
+     * @param Context $context
+     * @param AgentRunInterface $agentRunner
+     * @param JsonFactory $resultJsonFactory
+     */
     public function __construct(
         Context $context,
         private readonly AgentRunInterface $agentRunner,
@@ -25,6 +30,9 @@ class Chat extends Action implements HttpPostActionInterface
         parent::__construct($context);
     }
 
+    /**
+     * @inheritdoc
+     */
     public function execute()
     {
         $result  = $this->resultJsonFactory->create();

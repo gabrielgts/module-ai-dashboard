@@ -21,6 +21,13 @@ class SavePreferences extends Action implements HttpPostActionInterface
     /** Maximum sections we'll accept to guard against oversized payloads. */
     private const MAX_SECTIONS = 20;
 
+    /**
+     * @param Context $context
+     * @param AuthSession $authSession
+     * @param UserResource $userResource
+     * @param JsonFactory $jsonFactory
+     * @param LoggerInterface $logger
+     */
     public function __construct(
         Context $context,
         private readonly AuthSession $authSession,
@@ -31,6 +38,9 @@ class SavePreferences extends Action implements HttpPostActionInterface
         parent::__construct($context);
     }
 
+    /**
+     * @inheritdoc
+     */
     public function execute(): \Magento\Framework\Controller\Result\Json
     {
         $result = $this->jsonFactory->create();

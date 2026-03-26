@@ -18,8 +18,16 @@ class ProductMetricsCollector
     private const PRODUCT_ENTITY_TYPE = 4;
     private const CATEGORY_ENTITY_TYPE = 3;
 
+    /** @var int */
     private int $storeId = 0;
 
+    /**
+     * @param ResourceConnection $resource
+     * @param ProductMetrics $metrics
+     * @param LoggerInterface $logger
+     * @param Config $config
+     * @param StockAnomalyAnalyzer $stockAnomalyAnalyzer
+     */
     public function __construct(
         private readonly ResourceConnection $resource,
         private readonly ProductMetrics $metrics,
@@ -29,6 +37,9 @@ class ProductMetricsCollector
     ) {
     }
 
+    /**
+     * @inheritdoc
+     */
     public function collect(int $storeId = 0): ProductMetricsInterface
     {
         $this->storeId = $storeId;
@@ -46,6 +57,11 @@ class ProductMetricsCollector
         return $this->metrics;
     }
 
+    /**
+     * Fetch total active products, out-of-stock count, and low-stock count.
+     *
+     * @return void
+     */
     private function collectCatalogueTotals(): void
     {
         $conn   = $this->resource->getConnection();
@@ -76,6 +92,7 @@ class ProductMetricsCollector
 
     /**
      * Uses oi.name (product name captured at order time) to avoid a heavy EAV join.
+     *
      * Excludes child (bundle/configurable) items via parent_item_id IS NULL.
      */
     private function collectTopSellers(): void
@@ -117,6 +134,11 @@ class ProductMetricsCollector
         $this->metrics->setTopSellingProducts($sellers);
     }
 
+    /**
+     * Fetch products that are below the low-stock threshold.
+     *
+     * @return void
+     */
     private function collectLowStock(): void
     {
         $conn    = $this->resource->getConnection();
@@ -161,6 +183,11 @@ class ProductMetricsCollector
         $this->metrics->setLowStockProducts($list);
     }
 
+    /**
+     * Fetch revenue aggregated by category for the last 30 days.
+     *
+     * @return void
+     */
     private function collectRevenueByCategory(): void
     {
         $conn       = $this->resource->getConnection();
@@ -215,6 +242,7 @@ class ProductMetricsCollector
 
     /**
      * Enriches each low-stock item with a depletion_rate and anomaly flag.
+     *
      * Must run after both collectTopSellers() and collectLowStock().
      */
     private function flagStockAnomalies(): void

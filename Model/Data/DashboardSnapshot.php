@@ -11,11 +11,20 @@ use Gtstudio\AiDashboard\Api\Data\ProductMetricsInterface;
 
 class DashboardSnapshot implements DashboardSnapshotInterface
 {
+    /** @var OrderMetricsInterface */
     private OrderMetricsInterface $orders;
+    /** @var CustomerMetricsInterface */
     private CustomerMetricsInterface $customers;
+    /** @var ProductMetricsInterface */
     private ProductMetricsInterface $products;
+    /** @var string */
     private string $builtAt = '';
 
+    /**
+     * @param OrderMetricsInterface $orders
+     * @param CustomerMetricsInterface $customers
+     * @param ProductMetricsInterface $products
+     */
     public function __construct(
         OrderMetricsInterface $orders,
         CustomerMetricsInterface $customers,
@@ -26,18 +35,95 @@ class DashboardSnapshot implements DashboardSnapshotInterface
         $this->products  = $products;
     }
 
-    public function getOrders(): OrderMetricsInterface { return $this->orders; }
-    public function setOrders(OrderMetricsInterface $orders): void { $this->orders = $orders; }
+    /**
+     * Get order metrics.
+     *
+     * @return OrderMetricsInterface
+     */
+    public function getOrders(): OrderMetricsInterface
+    {
+        return $this->orders;
+    }
 
-    public function getCustomers(): CustomerMetricsInterface { return $this->customers; }
-    public function setCustomers(CustomerMetricsInterface $customers): void { $this->customers = $customers; }
+    /**
+     * Set order metrics.
+     *
+     * @param OrderMetricsInterface $orders
+     * @return void
+     */
+    public function setOrders(OrderMetricsInterface $orders): void
+    {
+        $this->orders = $orders;
+    }
 
-    public function getProducts(): ProductMetricsInterface { return $this->products; }
-    public function setProducts(ProductMetricsInterface $products): void { $this->products = $products; }
+    /**
+     * Get customer metrics.
+     *
+     * @return CustomerMetricsInterface
+     */
+    public function getCustomers(): CustomerMetricsInterface
+    {
+        return $this->customers;
+    }
 
-    public function getBuiltAt(): string { return $this->builtAt; }
-    public function setBuiltAt(string $datetime): void { $this->builtAt = $datetime; }
+    /**
+     * Set customer metrics.
+     *
+     * @param CustomerMetricsInterface $customers
+     * @return void
+     */
+    public function setCustomers(CustomerMetricsInterface $customers): void
+    {
+        $this->customers = $customers;
+    }
 
+    /**
+     * Get product metrics.
+     *
+     * @return ProductMetricsInterface
+     */
+    public function getProducts(): ProductMetricsInterface
+    {
+        return $this->products;
+    }
+
+    /**
+     * Set product metrics.
+     *
+     * @param ProductMetricsInterface $products
+     * @return void
+     */
+    public function setProducts(ProductMetricsInterface $products): void
+    {
+        $this->products = $products;
+    }
+
+    /**
+     * Get snapshot build timestamp.
+     *
+     * @return string
+     */
+    public function getBuiltAt(): string
+    {
+        return $this->builtAt;
+    }
+
+    /**
+     * Set snapshot build timestamp.
+     *
+     * @param string $datetime
+     * @return void
+     */
+    public function setBuiltAt(string $datetime): void
+    {
+        $this->builtAt = $datetime;
+    }
+
+    /**
+     * Check if the snapshot is older than one hour.
+     *
+     * @return bool
+     */
     public function isStale(): bool
     {
         if ($this->builtAt === '') {

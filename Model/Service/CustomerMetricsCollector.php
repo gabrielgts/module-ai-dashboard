@@ -19,8 +19,17 @@ class CustomerMetricsCollector
     /** Maximum number of customers loaded for RFM segmentation to stay within memory budget. */
     private const RFM_SAMPLE_LIMIT = 2000;
 
+    /** @var int */
     private int $storeId = 0;
 
+    /**
+     * @param ResourceConnection $resource
+     * @param CustomerMetrics $metrics
+     * @param LoggerInterface $logger
+     * @param Config $config
+     * @param CustomerSegmentationAnalyzer $segmentationAnalyzer
+     * @param TrendSlopeAnalyzer $trendSlopeAnalyzer
+     */
     public function __construct(
         private readonly ResourceConnection $resource,
         private readonly CustomerMetrics $metrics,
@@ -31,6 +40,9 @@ class CustomerMetricsCollector
     ) {
     }
 
+    /**
+     * @inheritdoc
+     */
     public function collect(int $storeId = 0): CustomerMetricsInterface
     {
         $this->storeId = $storeId;
@@ -50,7 +62,11 @@ class CustomerMetricsCollector
         return $this->metrics;
     }
 
-    /** Fetches today / this-week / this-month new registrations in one query. */
+    /**
+     * Fetch today, this-week, and this-month new registrations in one query.
+     *
+     * @return void
+     */
     private function collectNewCustomers(): void
     {
         $conn  = $this->resource->getConnection();
@@ -65,7 +81,8 @@ class CustomerMetricsCollector
                     "SUM(CASE WHEN YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1) THEN 1 ELSE 0 END)"
                 ),
                 'month' => new \Zend_Db_Expr(
-                    "SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) THEN 1 ELSE 0 END)"
+                    "SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE())" .
+                    " AND MONTH(created_at) = MONTH(CURDATE()) THEN 1 ELSE 0 END)"
                 ),
             ])
             ->where('created_at >= DATE_SUB(CURDATE(), INTERVAL 31 DAY)');
@@ -81,6 +98,11 @@ class CustomerMetricsCollector
         $this->metrics->setNewCustomersMonth((int) ($row['month'] ?? 0));
     }
 
+    /**
+     * Fetch the total count of active registered customers.
+     *
+     * @return void
+     */
     private function collectTotalCustomers(): void
     {
         $conn  = $this->resource->getConnection();
@@ -99,6 +121,11 @@ class CustomerMetricsCollector
         $this->metrics->setTotalRegisteredCustomers($total);
     }
 
+    /**
+     * Fetch top customers ranked by lifetime value.
+     *
+     * @return void
+     */
     private function collectTopCustomers(): void
     {
         $conn      = $this->resource->getConnection();
@@ -136,6 +163,11 @@ class CustomerMetricsCollector
         $this->metrics->setTopCustomersByLtv($top);
     }
 
+    /**
+     * Fetch the daily customer acquisition trend for the configured lookback window.
+     *
+     * @return void
+     */
     private function collectAcquisitionTrend(): void
     {
         $conn  = $this->resource->getConnection();
@@ -164,6 +196,11 @@ class CustomerMetricsCollector
         $this->metrics->setAcquisitionTrend($trend);
     }
 
+    /**
+     * Calculate the repeat customer rate as a percentage.
+     *
+     * @return void
+     */
     private function calculateRepeatRate(): void
     {
         $conn   = $this->resource->getConnection();
@@ -196,8 +233,9 @@ class CustomerMetricsCollector
     }
 
     /**
-     * Fetches RFM (Recency, Frequency, Monetary) data for up to RFM_SAMPLE_LIMIT customers
-     * and runs k-Means segmentation to produce VIP / Active / At-Risk tiers.
+     * Fetch RFM data and run k-Means segmentation to produce VIP / Active / At-Risk tiers.
+     *
+     * @return void
      */
     private function collectSegments(): void
     {
@@ -246,7 +284,13 @@ class CustomerMetricsCollector
         $this->metrics->setSegments($this->segmentationAnalyzer->segment($rfmRows));
     }
 
-    /** OLS slope of the customer acquisition trend — positive = growing, negative = declining. */
+    /**
+     * Compute OLS slope of the customer acquisition trend.
+     *
+     * A positive value means growing; negative means declining.
+     *
+     * @return void
+     */
     private function computeAcquisitionTrendSlope(): void
     {
         $slope = $this->trendSlopeAnalyzer->slope($this->metrics->getAcquisitionTrend(), 'count');

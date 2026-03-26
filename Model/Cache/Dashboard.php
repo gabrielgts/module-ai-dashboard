@@ -10,8 +10,8 @@ namespace Gtstudio\AiDashboard\Model\Cache;
 class Dashboard extends \Magento\Framework\Cache\Frontend\Decorator\TagScope
 {
 
-    const TYPE_IDENTIFIER = 'dashboard_cache_tag';
-    const CACHE_TAG = 'DASHBOARD_CACHE_TAG';
+    public const TYPE_IDENTIFIER = 'dashboard_cache_tag';
+    public const CACHE_TAG = 'DASHBOARD_CACHE_TAG';
 
     /**
      * @param \Magento\Framework\App\Cache\Type\FrontendPool $cacheFrontendPool
@@ -22,4 +22,3 @@ class Dashboard extends \Magento\Framework\Cache\Frontend\Decorator\TagScope
         parent::__construct($cacheFrontendPool->get(self::TYPE_IDENTIFIER), self::CACHE_TAG);
     }
 }
-

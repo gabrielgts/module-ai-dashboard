@@ -16,6 +16,12 @@ class GetData extends Action implements HttpGetActionInterface
 {
     public const ADMIN_RESOURCE = 'Gtstudio_AiDashboard::view';
 
+    /**
+     * @param Context $context
+     * @param DashboardDataServiceInterface $dashboardDataService
+     * @param JsonFactory $resultJsonFactory
+     * @param Config $config
+     */
     public function __construct(
         Context $context,
         private readonly DashboardDataServiceInterface $dashboardDataService,
@@ -25,6 +31,9 @@ class GetData extends Action implements HttpGetActionInterface
         parent::__construct($context);
     }
 
+    /**
+     * @inheritdoc
+     */
     public function execute()
     {
         $result = $this->resultJsonFactory->create();

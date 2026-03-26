@@ -25,6 +25,12 @@ class GetInsights extends Action implements HttpPostActionInterface
         'Provide a brief store performance summary for today. Include revenue and order highlights, ' .
         'top selling products, customer activity, and any stock alerts. Keep it under 200 words.';
 
+    /**
+     * @param Context $context
+     * @param AgentRunInterface $agentRunner
+     * @param CacheManager $cacheManager
+     * @param JsonFactory $resultJsonFactory
+     */
     public function __construct(
         Context $context,
         private readonly AgentRunInterface $agentRunner,
@@ -34,12 +40,15 @@ class GetInsights extends Action implements HttpPostActionInterface
         parent::__construct($context);
     }
 
+    /**
+     * @inheritdoc
+     */
     public function execute()
     {
         $result   = $this->resultJsonFactory->create();
         $question = trim((string) $this->getRequest()->getParam('question', self::DEFAULT_PROMPT));
         $fresh    = (bool) $this->getRequest()->getParam('fresh', 0);
-        $hash     = md5($question . date('Ymd'));
+        $hash     = hash('sha256', $question . date('Ymd'));
 
         try {
             if (!$fresh) {

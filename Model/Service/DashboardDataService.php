@@ -14,6 +14,17 @@ use Psr\Log\LoggerInterface;
 
 class DashboardDataService implements DashboardDataServiceInterface
 {
+    /**
+     * @param OrderMetricsCollector $orderCollector
+     * @param CustomerMetricsCollector $customerCollector
+     * @param ProductMetricsCollector $productCollector
+     * @param CacheManager $cacheManager
+     * @param DashboardSnapshot $snapshotProto
+     * @param OrderMetrics $orderMetricsProto
+     * @param CustomerMetrics $customerMetricsProto
+     * @param ProductMetrics $productMetricsProto
+     * @param LoggerInterface $logger
+     */
     public function __construct(
         private readonly OrderMetricsCollector $orderCollector,
         private readonly CustomerMetricsCollector $customerCollector,
@@ -27,6 +38,9 @@ class DashboardDataService implements DashboardDataServiceInterface
     ) {
     }
 
+    /**
+     * @inheritdoc
+     */
     public function getSnapshot(bool $forceRefresh = false, int $storeId = 0): DashboardSnapshotInterface
     {
         if (!$forceRefresh) {
@@ -42,6 +56,9 @@ class DashboardDataService implements DashboardDataServiceInterface
         return $snapshot;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function buildSnapshot(int $storeId = 0): DashboardSnapshotInterface
     {
         $snapshot = clone $this->snapshotProto;
@@ -53,11 +70,20 @@ class DashboardDataService implements DashboardDataServiceInterface
         return $snapshot;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function invalidateCache(): void
     {
         $this->cacheManager->invalidateAll();
     }
 
+    /**
+     * Attempt to hydrate a snapshot from cache.
+     *
+     * @param int $storeId
+     * @return DashboardSnapshotInterface|null
+     */
     private function loadFromCache(int $storeId = 0): ?DashboardSnapshotInterface
     {
         try {
@@ -117,6 +143,13 @@ class DashboardDataService implements DashboardDataServiceInterface
         }
     }
 
+    /**
+     * Serialize and persist the snapshot to cache.
+     *
+     * @param DashboardSnapshotInterface $snapshot
+     * @param int $storeId
+     * @return void
+     */
     private function saveToCache(DashboardSnapshotInterface $snapshot, int $storeId = 0): void
     {
         try {

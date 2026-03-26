@@ -16,12 +16,11 @@ use Phpml\Regression\LeastSquares;
 class TrendSlopeAnalyzer
 {
     /**
-     * Returns the OLS slope of the values in $trendRows.
+     * Return the OLS slope of the values in $trendRows.
      *
-     * @param array<int, array<string, mixed>> $trendRows Rows already in date-ascending order
-     *                                                    (e.g. [['date'=>'...','revenue'=>123.0], ...])
-     * @param string $valueKey Key within each row that holds the numeric metric
-     * @return float Slope coefficient; 0.0 when fewer than 2 rows are provided
+     * @param array $trendRows Rows in date-ascending order
+     * @param string $valueKey Key within each row holding the numeric metric
+     * @return float
      */
     public function slope(array $trendRows, string $valueKey = 'revenue'): float
     {

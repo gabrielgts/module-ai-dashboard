@@ -28,12 +28,10 @@ class CustomerSegmentationAnalyzer
     private const MAX_ITERATIONS = 100;
 
     /**
-     * @param array<int|string, array{recency: int, frequency: int, monetary: float, name: string, email: string}> $rfmRows
-     * @return array{
-     *     vip:     array{count: int, avg_ltv: float, customers: list<array>},
-     *     active:  array{count: int, avg_ltv: float, customers: list<array>},
-     *     at_risk: array{count: int, avg_ltv: float, customers: list<array>}
-     * }
+     * Segment customers into VIP, Active, and At-Risk tiers using k-Means.
+     *
+     * @param array $rfmRows Keyed by customer_id with recency/frequency/monetary/name/email
+     * @return array{vip: array, active: array, at_risk: array}
      */
     public function segment(array $rfmRows): array
     {
@@ -51,10 +49,11 @@ class CustomerSegmentationAnalyzer
 
     /**
      * Min-max normalise each RFM dimension to [0, 1].
+     *
      * Recency is inverted: 0 days ago → 1.0, oldest → 0.0.
      *
-     * @param array<int|string, array{recency: int, frequency: int, monetary: float}> $rfmRows
-     * @return array<int|string, array{float, float, float}>
+     * @param array $rfmRows Keyed by customer_id with recency/frequency/monetary fields
+     * @return array
      */
     private function normalizeFeatures(array $rfmRows): array
     {
@@ -62,9 +61,12 @@ class CustomerSegmentationAnalyzer
         $frequencies = array_column($rfmRows, 'frequency');
         $monetaries  = array_column($rfmRows, 'monetary');
 
-        $minR = (float) min($recencies);   $maxR = (float) max($recencies);
-        $minF = (float) min($frequencies); $maxF = (float) max($frequencies);
-        $minM = (float) min($monetaries);  $maxM = (float) max($monetaries);
+        $minR = (float) min($recencies);
+        $maxR = (float) max($recencies);
+        $minF = (float) min($frequencies);
+        $maxF = (float) max($frequencies);
+        $minM = (float) min($monetaries);
+        $maxM = (float) max($monetaries);
 
         $rangeR = $maxR - $minR;
         $rangeF = $maxF - $minF;
@@ -86,10 +88,10 @@ class CustomerSegmentationAnalyzer
     // ── k-Means ───────────────────────────────────────────────────────────────
 
     /**
-     * Runs k-means with k-means++ initialisation and converges in at most MAX_ITERATIONS steps.
+     * Run k-means with k-means++ initialisation, converging in at most MAX_ITERATIONS steps.
      *
-     * @param array<int|string, array{float, float, float}> $points  Normalised feature vectors keyed by customer_id
-     * @return array<int|string, int>  customer_id → cluster index (0 … K-1)
+     * @param array $points Normalised feature vectors keyed by customer_id
+     * @return array Customer_id to cluster index (0 to K-1)
      */
     private function runKMeans(array $points): array
     {
@@ -134,10 +136,10 @@ class CustomerSegmentationAnalyzer
     }
 
     /**
-     * k-means++ centroid seed selection — spreads initial centroids for faster convergence.
+     * Select initial centroids using k-means++ to spread them for faster convergence.
      *
-     * @param array<int, array{float, float, float}> $points
-     * @return array<int, array{float, float, float}>
+     * @param array $points
+     * @return array
      */
     private function initCentroidsKMeansPP(array $points): array
     {
@@ -155,7 +157,7 @@ class CustomerSegmentationAnalyzer
 
             // Weighted random pick proportional to squared distance from nearest centroid
             $sum  = (float) array_sum($distances);
-            $pick = (mt_rand() / mt_getrandmax()) * $sum;
+            $pick = (random_int(0, PHP_INT_MAX) / PHP_INT_MAX) * $sum;
             foreach ($distances as $i => $d) {
                 $pick -= $d;
                 if ($pick <= 0.0) {
@@ -170,11 +172,12 @@ class CustomerSegmentationAnalyzer
 
     /**
      * Recompute each centroid as the mean of its assigned points.
+     *
      * Empty clusters are re-seeded with a random point to avoid degeneracy.
      *
-     * @param array<int, array{float, float, float}> $points
-     * @param array<int, int>                        $assignments
-     * @return array<int, array{float, float, float}>
+     * @param array $points
+     * @param array $assignments
+     * @return array
      */
     private function recomputeCentroids(array $points, array $assignments): array
     {
@@ -206,7 +209,13 @@ class CustomerSegmentationAnalyzer
         return $centroids;
     }
 
-    /** @param array{float, float, float} $a @param array{float, float, float} $b */
+    /**
+     * Compute squared Euclidean distance between two points.
+     *
+     * @param array $a
+     * @param array $b
+     * @return float
+     */
     private function squaredDistance(array $a, array $b): float
     {
         $sum = 0.0;
@@ -220,11 +229,12 @@ class CustomerSegmentationAnalyzer
     // ── Result assembly ───────────────────────────────────────────────────────
 
     /**
-     * Groups customers by cluster, then sorts clusters by avg LTV descending
-     * to assign stable tier labels: VIP (highest LTV) → Active → At-Risk.
+     * Group customers by cluster and assign tier labels by avg LTV descending.
      *
-     * @param array<int|string, int>  $assignments  customer_id → cluster index
-     * @param array<int|string, array{recency: int, frequency: int, monetary: float, name: string, email: string}> $rfmRows
+     * Sorts clusters by avg LTV: VIP (highest) → Active → At-Risk.
+     *
+     * @param array $assignments Customer_id to cluster index
+     * @param array $rfmRows Keyed by customer_id with recency/frequency/monetary/name/email
      * @return array{vip: array, active: array, at_risk: array}
      */
     private function buildResult(array $assignments, array $rfmRows): array
@@ -269,7 +279,11 @@ class CustomerSegmentationAnalyzer
         return $result;
     }
 
-    /** @return array{vip: array, active: array, at_risk: array} */
+    /**
+     * Return an empty segmentation result with zero counts for all tiers.
+     *
+     * @return array{vip: array, active: array, at_risk: array}
+     */
     private function emptyResult(): array
     {
         $empty = ['count' => 0, 'avg_ltv' => 0.0, 'customers' => []];

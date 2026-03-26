@@ -11,6 +11,11 @@ use Psr\Log\LoggerInterface;
 /** Lightweight today-only refresh — runs every hour to keep KPI cards current. */
 class RefreshTodayData
 {
+    /**
+     * @param OrderMetricsCollector $orderCollector
+     * @param CacheManager $cacheManager
+     * @param LoggerInterface $logger
+     */
     public function __construct(
         private readonly OrderMetricsCollector $orderCollector,
         private readonly CacheManager $cacheManager,
@@ -18,6 +23,11 @@ class RefreshTodayData
     ) {
     }
 
+    /**
+     * Refresh today-only KPI data and persist to cache.
+     *
+     * @return void
+     */
     public function execute(): void
     {
         try {

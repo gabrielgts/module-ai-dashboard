@@ -25,6 +25,12 @@ class CreateStoreAssistantAgentPatch implements DataPatchInterface
         'query_entity',
     ];
 
+    /**
+     * @param GetAiAgentByCodeInterface $getAiAgentByCode
+     * @param SaveAiAgentInterface $saveAiAgent
+     * @param AiAgentDataFactory $agentFactory
+     * @param ResourceConnection $resourceConnection
+     */
     public function __construct(
         private readonly GetAiAgentByCodeInterface $getAiAgentByCode,
         private readonly SaveAiAgentInterface $saveAiAgent,
@@ -33,6 +39,9 @@ class CreateStoreAssistantAgentPatch implements DataPatchInterface
     ) {
     }
 
+    /**
+     * @inheritdoc
+     */
     public function apply(): self
     {
         if ($this->agentExists()) {
@@ -48,7 +57,8 @@ class CreateStoreAssistantAgentPatch implements DataPatchInterface
         );
         $agent->setBackground(
             "You are an expert Magento eCommerce analyst embedded in the store admin dashboard.\n" .
-            "You have access to real-time store data through tools that query orders, customers, products, and inventory.\n" .
+            "You have access to real-time store data through tools that query " .
+            "orders, customers, products, and inventory.\n" .
             "Always use tools to fetch data — never invent or estimate numbers.\n" .
             "Be concise. Prefer bullet points and tables over paragraphs.\n" .
             "When comparing periods include both absolute and percentage change."
@@ -79,16 +89,27 @@ class CreateStoreAssistantAgentPatch implements DataPatchInterface
         return $this;
     }
 
+    /**
+     * @inheritdoc
+     */
     public static function getDependencies(): array
     {
         return [BootstrapPhase2SpecializedTools::class];
     }
 
+    /**
+     * @inheritdoc
+     */
     public function getAliases(): array
     {
         return [];
     }
 
+    /**
+     * Check whether the store_assistant agent already exists.
+     *
+     * @return bool
+     */
     private function agentExists(): bool
     {
         try {
@@ -99,6 +120,11 @@ class CreateStoreAssistantAgentPatch implements DataPatchInterface
         }
     }
 
+    /**
+     * Resolve tool entity IDs from tool codes.
+     *
+     * @return array<int, int>
+     */
     private function resolveToolIds(): array
     {
         $connection = $this->resourceConnection->getConnection();

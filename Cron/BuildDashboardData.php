@@ -10,12 +10,21 @@ use Psr\Log\LoggerInterface;
 /** Full snapshot rebuild — runs daily at 00:05. */
 class BuildDashboardData
 {
+    /**
+     * @param DashboardDataServiceInterface $dashboardDataService
+     * @param LoggerInterface $logger
+     */
     public function __construct(
         private readonly DashboardDataServiceInterface $dashboardDataService,
         private readonly LoggerInterface $logger,
     ) {
     }
 
+    /**
+     * Run the full dashboard snapshot rebuild.
+     *
+     * @return void
+     */
     public function execute(): void
     {
         $this->logger->info('AiDashboard: starting full snapshot rebuild.');

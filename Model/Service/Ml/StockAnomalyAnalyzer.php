@@ -22,9 +22,11 @@ class StockAnomalyAnalyzer
     private const STDDEV_THRESHOLD = 2.0;
 
     /**
-     * @param array<int, array{product_id: int, name: string, sku: string, qty: float, threshold: int}> $lowStockItems
-     * @param array<int, array{product_id: int, qty_sold: float, revenue: float, ...}>                  $topSellers
-     * @return array<int, array{product_id: int, name: string, sku: string, qty: float, threshold: int, depletion_rate: float, anomaly: bool}>
+     * Flag low-stock items with a depletion rate and anomaly indicator.
+     *
+     * @param array $lowStockItems Items with product_id, name, sku, qty, threshold fields
+     * @param array $topSellers Items with product_id, qty_sold, revenue fields
+     * @return array
      */
     public function flag(array $lowStockItems, array $topSellers): array
     {
@@ -52,7 +54,7 @@ class StockAnomalyAnalyzer
         if (count($rates) < 2) {
             // Cannot compute a meaningful stddev with a single item
             foreach ($lowStockItems as $i => $item) {
-                $result[] = array_merge($item, ['depletion_rate' => round($rates[$i], 4), 'anomaly' => false]);
+                $result[] = [...$item, 'depletion_rate' => round($rates[$i], 4), 'anomaly' => false];
             }
             return $result;
         }
@@ -63,11 +65,12 @@ class StockAnomalyAnalyzer
         $threshold  = $mean + (self::STDDEV_THRESHOLD * $stddev);
 
         foreach ($lowStockItems as $i => $item) {
-            $rate   = $rates[$i];
-            $result[] = array_merge($item, [
+            $rate = $rates[$i];
+            $result[] = [
+                ...$item,
                 'depletion_rate' => round($rate, 4),
-                'anomaly'        => $stddev > 0.0 && $rate > $threshold,
-            ]);
+                'anomaly' => $stddev > 0.0 && $rate > $threshold,
+            ];
         }
 
         return $result;

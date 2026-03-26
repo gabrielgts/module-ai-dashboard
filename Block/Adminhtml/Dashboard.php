@@ -15,6 +15,12 @@ class Dashboard extends Template
     private const AGENT_CODE    = 'store_assistant';
     private const EXTRA_PREF_KEY = 'aid_sections_order';
 
+    /**
+     * @param Context $context
+     * @param AuthSession $authSession
+     * @param StoreManagerInterface $storeManager
+     * @param array $data
+     */
     public function __construct(
         Context $context,
         private readonly AuthSession $authSession,
@@ -24,37 +30,71 @@ class Dashboard extends Template
         parent::__construct($context, $data);
     }
 
+    /**
+     * Get AJAX URL for fetching dashboard data.
+     *
+     * @return string
+     */
     public function getDataUrl(): string
     {
         return $this->getUrl('aidashboard/ajax/getdata');
     }
 
+    /**
+     * Get AJAX URL for fetching AI insights.
+     *
+     * @return string
+     */
     public function getInsightsUrl(): string
     {
         return $this->getUrl('aidashboard/ajax/getinsights');
     }
 
+    /**
+     * Get AJAX URL for the conversational chat endpoint.
+     *
+     * @return string
+     */
     public function getChatUrl(): string
     {
         return $this->getUrl('aidashboard/ajax/chat');
     }
 
+    /**
+     * Get AJAX URL for forced snapshot refresh.
+     *
+     * @return string
+     */
     public function getRefreshUrl(): string
     {
         return $this->getUrl('aidashboard/ajax/getdata', ['force' => 1]);
     }
 
+    /**
+     * Get the agent code used for dashboard chat.
+     *
+     * @return string
+     */
     public function getAgentCode(): string
     {
         return self::AGENT_CODE;
     }
 
+    /**
+     * Get AJAX URL for saving section order preferences.
+     *
+     * @return string
+     */
     public function getPreferencesUrl(): string
     {
         return $this->getUrl('aidashboard/ajax/savepreferences');
     }
 
-    /** @return list<string> Saved section order for the current admin user. */
+    /**
+     * Get saved section order for the current admin user.
+     *
+     * @return list<string>
+     */
     public function getSectionsOrder(): array
     {
         $user  = $this->authSession->getUser();
@@ -66,7 +106,8 @@ class Dashboard extends Template
     }
 
     /**
-     * Returns store views available for the dashboard scope switcher.
+     * Get store views available for the dashboard scope switcher.
+     *
      * Returns an empty array when running in single-store mode.
      *
      * @return array<int, array{value: int, label: string}>
@@ -88,11 +129,21 @@ class Dashboard extends Template
         return $stores;
     }
 
+    /**
+     * Check whether the current admin user can trigger a snapshot refresh.
+     *
+     * @return bool
+     */
     public function canRefresh(): bool
     {
         return $this->_authorization->isAllowed('Gtstudio_AiDashboard::refresh');
     }
 
+    /**
+     * Check whether the current admin user has the chat/assistant ACL permission.
+     *
+     * @return bool
+     */
     public function canUseAssistant(): bool
     {
         return $this->_authorization->isAllowed('Gtstudio_AiDashboard::chat');

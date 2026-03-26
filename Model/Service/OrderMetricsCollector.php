@@ -19,8 +19,16 @@ class OrderMetricsCollector
 {
     private const EXCLUDED_STATUSES = ['canceled', 'closed'];
 
+    /** @var int */
     private int $storeId = 0;
 
+    /**
+     * @param ResourceConnection $resource
+     * @param OrderMetrics $metrics
+     * @param LoggerInterface $logger
+     * @param Config $config
+     * @param TrendSlopeAnalyzer $trendSlopeAnalyzer
+     */
     public function __construct(
         private readonly ResourceConnection $resource,
         private readonly OrderMetrics $metrics,
@@ -30,6 +38,9 @@ class OrderMetricsCollector
     ) {
     }
 
+    /**
+     * @inheritdoc
+     */
     public function collect(int $storeId = 0): OrderMetricsInterface
     {
         $this->storeId = $storeId;
@@ -49,7 +60,11 @@ class OrderMetricsCollector
         return $this->metrics;
     }
 
-    /** Fetches today / this-week / this-month counts and revenues in one query. */
+    /**
+     * Fetch today, this-week, and this-month order counts and revenues in one query.
+     *
+     * @return void
+     */
     private function collectPeriodMetrics(): void
     {
         $conn  = $this->resource->getConnection();
@@ -68,13 +83,16 @@ class OrderMetricsCollector
                     "SUM(CASE WHEN YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1) THEN 1 ELSE 0 END)"
                 ),
                 'week_rev'  => new \Zend_Db_Expr(
-                    "COALESCE(SUM(CASE WHEN YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1) THEN base_grand_total ELSE NULL END), 0)"
+                    'COALESCE(SUM(CASE WHEN YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)' .
+                    ' THEN base_grand_total ELSE NULL END), 0)'
                 ),
                 'month_cnt' => new \Zend_Db_Expr(
-                    "SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) THEN 1 ELSE 0 END)"
+                    'SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE())' .
+                    ' AND MONTH(created_at) = MONTH(CURDATE()) THEN 1 ELSE 0 END)'
                 ),
                 'month_rev' => new \Zend_Db_Expr(
-                    "COALESCE(SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) THEN base_grand_total ELSE NULL END), 0)"
+                    'COALESCE(SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE())' .
+                    ' AND MONTH(created_at) = MONTH(CURDATE()) THEN base_grand_total ELSE NULL END), 0)'
                 ),
             ])
             ->where('created_at >= DATE_SUB(CURDATE(), INTERVAL 31 DAY)')
@@ -98,7 +116,11 @@ class OrderMetricsCollector
         $this->metrics->setAverageOrderValue($monthCount > 0 ? $monthRevenue / $monthCount : 0.0);
     }
 
-    /** Calculates revenue growth % against the previous calendar month. */
+    /**
+     * Calculate revenue growth percentage against the previous calendar month.
+     *
+     * @return void
+     */
     private function collectPriorMonthRevenue(): void
     {
         $conn  = $this->resource->getConnection();
@@ -122,6 +144,11 @@ class OrderMetricsCollector
         $this->metrics->setRevenueGrowthPercent(round($growth, 2));
     }
 
+    /**
+     * Fetch order counts grouped by status.
+     *
+     * @return void
+     */
     private function collectOrdersByStatus(): void
     {
         $conn  = $this->resource->getConnection();
@@ -145,6 +172,11 @@ class OrderMetricsCollector
         $this->metrics->setOrdersByStatus($byStatus);
     }
 
+    /**
+     * Fetch the daily revenue trend for the configured lookback window.
+     *
+     * @return void
+     */
     private function collectRevenueTrend(): void
     {
         $conn  = $this->resource->getConnection();
@@ -176,7 +208,11 @@ class OrderMetricsCollector
         $this->metrics->setRevenueTrend($trend);
     }
 
-    /** Coupon usage counts and top coupons by use frequency for the current month. */
+    /**
+     * Fetch coupon usage counts and top coupons by use frequency for the current month.
+     *
+     * @return void
+     */
     private function collectCouponMetrics(): void
     {
         $conn  = $this->resource->getConnection();
@@ -185,13 +221,18 @@ class OrderMetricsCollector
         $couponSelect = $conn->select()
             ->from($table, [
                 'used_today' => new \Zend_Db_Expr(
-                    "SUM(CASE WHEN DATE(created_at) = CURDATE() AND coupon_code IS NOT NULL AND coupon_code != '' THEN 1 ELSE 0 END)"
+                    "SUM(CASE WHEN DATE(created_at) = CURDATE()" .
+                    " AND coupon_code IS NOT NULL AND coupon_code != '' THEN 1 ELSE 0 END)"
                 ),
                 'used_month' => new \Zend_Db_Expr(
-                    "SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) AND coupon_code IS NOT NULL AND coupon_code != '' THEN 1 ELSE 0 END)"
+                    'SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE())' .
+                    " AND MONTH(created_at) = MONTH(CURDATE()) AND coupon_code IS NOT NULL AND coupon_code != ''" .
+                    ' THEN 1 ELSE 0 END)'
                 ),
                 'total_discount_month' => new \Zend_Db_Expr(
-                    "COALESCE(SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) AND coupon_code IS NOT NULL AND coupon_code != '' THEN ABS(discount_amount) ELSE 0 END), 0)"
+                    'COALESCE(SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE())' .
+                    " AND MONTH(created_at) = MONTH(CURDATE()) AND coupon_code IS NOT NULL AND coupon_code != ''" .
+                    ' THEN ABS(discount_amount) ELSE 0 END), 0)'
                 ),
             ])
             ->where('created_at >= DATE_SUB(CURDATE(), INTERVAL 31 DAY)')
@@ -237,6 +278,11 @@ class OrderMetricsCollector
         ]);
     }
 
+    /**
+     * Fetch the most recent orders for the dashboard table.
+     *
+     * @return void
+     */
     private function collectRecentOrders(): void
     {
         $conn  = $this->resource->getConnection();
@@ -274,7 +320,13 @@ class OrderMetricsCollector
         $this->metrics->setRecentOrders($orders);
     }
 
-    /** OLS slope of the revenue trend — positive = growing, negative = declining. */
+    /**
+     * Compute the OLS slope of the revenue trend.
+     *
+     * A positive value means growing; negative means declining.
+     *
+     * @return void
+     */
     private function computeRevenueTrendSlope(): void
     {
         $slope = $this->trendSlopeAnalyzer->slope($this->metrics->getRevenueTrend(), 'revenue');

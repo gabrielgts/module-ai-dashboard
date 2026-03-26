@@ -14,6 +14,11 @@ class CacheManager
     private const KEY_TODAY    = 'dashboard_today_v1';
     private const KEY_INSIGHTS = 'dashboard_ai_insights_v1';
 
+    /**
+     * @param DashboardCache $cache
+     * @param SerializerInterface $serializer
+     * @param Config $config
+     */
     public function __construct(
         private readonly DashboardCache $cache,
         private readonly SerializerInterface $serializer,
@@ -21,12 +26,25 @@ class CacheManager
     ) {
     }
 
+    /**
+     * Load the full dashboard snapshot from cache.
+     *
+     * @param int $storeId
+     * @return array<string, mixed>|null
+     */
     public function loadSnapshot(int $storeId = 0): ?array
     {
         $raw = $this->cache->load($this->snapshotKey($storeId));
         return $raw !== false ? $this->serializer->unserialize($raw) : null;
     }
 
+    /**
+     * Persist the full dashboard snapshot to cache.
+     *
+     * @param array $data
+     * @param int $storeId
+     * @return void
+     */
     public function saveSnapshot(array $data, int $storeId = 0): void
     {
         $this->cache->save(
@@ -37,12 +55,25 @@ class CacheManager
         );
     }
 
+    /**
+     * Load the today-only incremental snapshot from cache.
+     *
+     * @param int $storeId
+     * @return array<string, mixed>|null
+     */
     public function loadToday(int $storeId = 0): ?array
     {
         $raw = $this->cache->load($this->todayKey($storeId));
         return $raw !== false ? $this->serializer->unserialize($raw) : null;
     }
 
+    /**
+     * Persist the today-only incremental snapshot to cache.
+     *
+     * @param array $data
+     * @param int $storeId
+     * @return void
+     */
     public function saveToday(array $data, int $storeId = 0): void
     {
         $this->cache->save(
@@ -53,23 +84,47 @@ class CacheManager
         );
     }
 
+    /**
+     * Build the cache key for the full snapshot.
+     *
+     * @param int $storeId
+     * @return string
+     */
     private function snapshotKey(int $storeId): string
     {
         return self::KEY_SNAPSHOT . ($storeId > 0 ? '_s' . $storeId : '');
     }
 
+    /**
+     * Build the cache key for the today-only snapshot.
+     *
+     * @param int $storeId
+     * @return string
+     */
     private function todayKey(int $storeId): string
     {
         return self::KEY_TODAY . ($storeId > 0 ? '_s' . $storeId : '');
     }
 
-    /** @param string $questionHash md5 hash of the question + date */
+    /**
+     * Load cached AI insights by question hash.
+     *
+     * @param string $questionHash SHA-256 hash of the question and date
+     * @return string|null
+     */
     public function loadInsights(string $questionHash): ?string
     {
         $raw = $this->cache->load(self::KEY_INSIGHTS . '_' . $questionHash);
         return $raw !== false ? (string) $raw : null;
     }
 
+    /**
+     * Persist AI insights markdown to cache.
+     *
+     * @param string $questionHash SHA-256 hash of the question and date
+     * @param string $markdown
+     * @return void
+     */
     public function saveInsights(string $questionHash, string $markdown): void
     {
         $this->cache->save(
@@ -80,6 +135,11 @@ class CacheManager
         );
     }
 
+    /**
+     * Invalidate all dashboard cache entries.
+     *
+     * @return void
+     */
     public function invalidateAll(): void
     {
         $this->cache->clean('matchingTag', [DashboardCache::CACHE_TAG]);
