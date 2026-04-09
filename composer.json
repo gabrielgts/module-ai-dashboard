@@ -11,7 +11,7 @@
     ],
     "minimum-stability": "stable",
     "require": {
-        "gtstudio/module-ai-connector": "*",
+        "gtstudio/module-aiconnector": "*",
         "gtstudio/module-ai-agents": "*",
         "gtstudio/module-ai-data-query": "*",
         "magento/module-backend": "*",
