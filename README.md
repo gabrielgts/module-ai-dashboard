@@ -4,7 +4,7 @@ AI-powered analytics dashboard for Magento 2. Replaces the stock admin dashboard
 
 ## Preview
 
-![AiDashboard — KPI cards, revenue trend chart, and AI insights panel](docs/images/aidashboard-preview.gif)
+![AiDashboard — KPI cards, revenue trend chart, and AI insights panel](docs/images/preview.gif)
 
 ## AI Studio Ecosystem
 
